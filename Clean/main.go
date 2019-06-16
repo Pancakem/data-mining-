@@ -26,7 +26,6 @@ func main() {
 	folderpath = findDataFolder(platform)
 	fmt.Println(folderpath)
 	tempfiles := filesInFolder(folderpath)
-	fmt.Println(len(tempfiles))
 
 	// findout which files are json
 	files := make([]string, len(tempfiles))
@@ -89,11 +88,11 @@ func main() {
 		// remove duplicates
 		newRecords := removeDuplicateTweets(processedRecords)
 		// newUser := removeDuplicates(users)
-		// writeCSV(newRecords, platform)
-		err := writeDB(newRecords)
+		err := writeCSV(newRecords, "data.csv")
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Error occured in xlsx file", err)
 		}
+
 		// writeToFile("users.txt", newUser)
 
 	} else if platform == "instagram" {
@@ -103,13 +102,16 @@ func main() {
 		newMentions := removeDuplicates(mentions)
 		writeToFile(root+"/Parameters/mentions.txt", newMentions)
 		newRecords := removeDuplicateTweets(processedRecords)
-
-		// writeCSV(newRecords, platform)
-		err := writeDB(newRecords)
+		err := writeCSV(newRecords, "data.csv")
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Couldn't write csv file")
 		}
 
+	}
+
+	err := generateXLSXFromCSV("data.csv", "data.xlsx", ",")
+	if err != nil {
+		log.Println("Couldn't create xlsx file")
 	}
 
 	fmt.Println("Processing complete.")
