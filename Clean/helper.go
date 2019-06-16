@@ -8,6 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	uuid "github.com/satori/go.uuid"
+	"github.com/tealeg/xlsx"
 )
 
 func loadKeywords(filename string) []string {
@@ -27,32 +30,6 @@ func loadKeywords(filename string) []string {
 	}
 	return l
 }
-
-// writeCSV writes to CSV file the processed posts
-func writeCSV(records [][]string, platform string) {
-
-	// newfilename := changeFileExtension(filename, ".csv")
-	newfilename := "processed_" + platform + "_data.csv"
-	f, err := os.OpenFile(newfilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal("Error opening write file: ", err)
-	}
-
-	defer f.Close()
-
-	writer := csv.NewWriter(f)
-	for _, record := range records {
-		if err := writer.Write(record); err != nil {
-			log.Fatalln("error writing record to csv:", err)
-		}
-	}
-
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		log.Println(err)
-	}
-}
-
 
 // write the items found out from the tweets to file
 func writeToFile(filename string, items []string) {
@@ -123,13 +100,13 @@ func filesInFolder(folderpath string) []string {
 	return files
 }
 
-func ifJSON(filename string) bool{
+func ifJSON(filename string) bool {
 	indx := strings.LastIndex(filename, ".")
-	if indx == -1{
+	if indx == -1 {
 		return false
 	}
 
-	if filename[indx+1:] == "json"{
+	if filename[indx+1:] == "json" {
 		return true
 	}
 
@@ -138,7 +115,7 @@ func ifJSON(filename string) bool{
 
 func getDir() string {
 	dir, err := os.Getwd()
-	if  err != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -150,13 +127,124 @@ func getDir() string {
 	return dir[:idx]
 }
 
-func findDataFolder(platform string) string{
+func findDataFolder(platform string) string {
 	root := getDir()
 	datafolder := "/Results/"
-	if platform == "twitter"{
+	if platform == "twitter" {
 		return root + datafolder + "tweet_data/tweet"
-	}else if platform == "instagram" {
+	} else if platform == "instagram" {
 		return root + datafolder + "instagram_data"
 	}
 	return ""
+}
+
+// writeCSV writes to CSV file the processed posts
+func writeCSV(records [][]string, filename string) error {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal("Error opening write file: ", err)
+		return err
+	}
+
+	// read cache and add to the to be written records
+	files := filesInFolder(cacheFolder())
+
+	for _, file := range files[1:] {
+		records = append(records, readCacheFile(file))
+	}
+
+	defer f.Close()
+
+	writer := csv.NewWriter(f)
+	for _, record := range records {
+		if err := writer.Write(record); err != nil {
+			cacheWriteFailure(record)
+			log.Fatalln("error writing record to csv:", err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		log.Println(err)
+	}
+	return err
+}
+
+// cacheWriteFailure takes the row
+// provides caching for failed  write
+// the cache is a file of the row data
+func cacheWriteFailure(record []string) {
+	// provide a random uuid4 string for each file
+	u2, err := uuid.NewV4()
+	if err != nil {
+		log.Println("Error generating uuid: ", err)
+	}
+
+	uid := u2.String()
+
+	f, err := os.OpenFile(cacheFolder()+uid, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal("Couldn't create cache file")
+	}
+	for _, v := range record {
+		fmt.Fprintln(f, v)
+	}
+
+	defer f.Close()
+}
+
+func cacheFolder() string {
+	return getDir() + "/Cache/"
+}
+
+func readCacheFile(file string) []string {
+	record := make([]string, 0)
+
+	f, err := os.Open(file)
+	if err != nil {
+		log.Println("Couldn't not open file", err)
+	}
+
+	scanner := bufio.NewScanner(f)
+
+	for scanner.Scan() {
+		record = append(record, scanner.Text())
+	}
+	return record
+}
+
+func generateXLSXFromCSV(csvPath string, XLSXPath string, delimiter string) error {
+	csvFile, err := os.Open(csvPath)
+	if err != nil {
+		return err
+	}
+	defer csvFile.Close()
+	reader := csv.NewReader(csvFile)
+	if len(delimiter) > 0 {
+		reader.Comma = rune(delimiter[0])
+	} else {
+		reader.Comma = rune(';')
+	}
+	xlsxFile := xlsx.NewFile()
+	sheet, err := xlsxFile.AddSheet(csvPath)
+	if err != nil {
+		return err
+	}
+	fields, err := reader.Read()
+	for err == nil {
+		row := sheet.AddRow()
+		for _, field := range fields {
+			cell := row.AddCell()
+			cell.Value = field
+		}
+		fields, err = reader.Read()
+	}
+	if err != nil {
+		fmt.Printf(err.Error())
+	}
+	return xlsxFile.Save(XLSXPath)
+}
+
+func deleteFile(file string) error {
+	return os.Remove(file)
 }
