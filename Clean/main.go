@@ -24,16 +24,13 @@ func main() {
 	flag.Parse()
 
 	folderpath = findDataFolder(platform)
-	fmt.Println(folderpath)
 	tempfiles := filesInFolder(folderpath)
 
-	// findout which files are json
 	files := make([]string, len(tempfiles))
 	copy(files, tempfiles)
-
-	if platform == "twitter" || platform == "instagram" {
-		offset = 2
-	}
+	offset = 2
+	
+	
 
 	keywords := loadKeywords("search_words.txt")
 
@@ -103,17 +100,18 @@ func main() {
 		newMentions := removeDuplicates(mentions)
 		writeToFile(root+"/Parameters/mentions.txt", newMentions)
 		newRecords := removeDuplicateTweets(processedRecords)
-		err := writeCSV(newRecords, "data.csv")
+		err := writeCSV(newRecords, "temp.csv")
 		if err != nil {
 			log.Println("Couldn't write csv file")
 		}
 
 	}
 
-	err := generateXLSXFromCSV("data.csv", "data.xlsx", ",")
+	err := generateXLSXFromCSV("temp.csv", "data.xlsx", ",")
 	if err != nil {
 		log.Println("Couldn't create xlsx file")
 	}
+	//deleteFile("data.csv")
 
 	fmt.Println("Processing complete.")
 }
