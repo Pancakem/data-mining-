@@ -34,7 +34,7 @@ func loadAllTweets(files []string) [][]string {
 }
 
 func loadJSONOtherTweet(filename string) *otherTweet {
-	ot := &otherTweet{}
+	var ot otherTweet
 
 	f, err := os.Open(filename)
 	if err != nil {
@@ -46,12 +46,13 @@ func loadJSONOtherTweet(filename string) *otherTweet {
 		log.Fatal("Error loading file into buffer: ", err)
 	}
 	defer f.Close()
-
+	
 	err = json.Unmarshal(data, &ot)
-	if err != nil {
-		log.Fatal(err)
+	if err == nil {
+		//log.Println("Error reading buffer: ", err)
+		deleteFile(filename)
 	}
-	return ot
+	return &ot
 }
 
 func toArrayofArrays(ots []*otherTweet) (rec [][]string) {
