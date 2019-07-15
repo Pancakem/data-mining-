@@ -96,7 +96,8 @@ func filesInFolder(folderpath string) []string {
 	if err != nil {
 		log.Println("Error reading the folder: ", err)
 	}
-	// fmt.Println("Success!")
+	//fmt.Println("Success!")
+	//fmt.Println(len(files))
 	return files
 }
 
@@ -119,19 +120,20 @@ func getDir() string {
 		log.Fatal(err)
 	}
 
-	idx := strings.LastIndex(dir, "/")
-	if idx == -1 {
-		return ""
-	}
+	//idx := strings.LastIndex(dir, "/")
+	//if idx == -1 {
+	//	return ""
+	//}
 
-	return dir[:idx]
+	//return dir[:idx]
+	return dir
 }
 
 func findDataFolder(platform string) string {
 	root := getDir()
-	datafolder := "/Results/"
+	datafolder := "\\Data\\tweet"
 	if platform == "twitter" {
-		return root + datafolder + "tweet_data/tweet"
+		return root + datafolder //+ "tweet_data/tweet"
 	} else if platform == "instagram" {
 		return root + datafolder + "instagram_data"
 	}
