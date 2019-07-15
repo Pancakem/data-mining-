@@ -87,8 +87,9 @@ func main() {
 	if platform == "twitter" {
 		// remove duplicates
 		newRecords := removeDuplicateTweets(processedRecords)
+		sortedRecords := quickSort(newRecords)
 		// newUser := removeDuplicates(users)
-		err := writeCSV(newRecords, "data.csv")
+		err := writeCSV(sortedRecords, "data.csv")
 		if err != nil {
 			log.Println("Error occured in xlsx file", err)
 		}
